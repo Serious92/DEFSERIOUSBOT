@@ -1,3 +1,4 @@
+
 from keep_alive import keep_alive
 
 import os
@@ -83,6 +84,26 @@ async def handle_web_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     await update.message.reply_text(results)
 
+# === Comando /image ===
+async def handle_image_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    prompt = " ".join(context.args)
+    if not prompt:
+        await update.message.reply_text("Scrivi un prompt dopo il comando /image.")
+        return
+
+    try:
+        response = client.images.generate(
+            model="dall-e-3",
+            prompt=prompt,
+            n=1,
+            size="1024x1024"
+        )
+        image_url = response.data[0].url
+        await update.message.reply_photo(photo=image_url)
+    except Exception as e:
+        logging.error(f"Errore DALL·E: {e}")
+        await update.message.reply_text("Errore nella generazione dell'immagine.")
+
 # === PDF ===
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
     doc = update.message.document
@@ -108,9 +129,10 @@ if __name__ == '__main__':
 
     app.add_handler(CommandHandler("reset", handle_reset))
     app.add_handler(CommandHandler("web", handle_web_command))
+    app.add_handler(CommandHandler("image", handle_image_command))
     app.add_handler(CommandHandler("shutdown", handle_shutdown))
     app.add_handler(MessageHandler(filters.Document.PDF, handle_document))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
-    print("🤖 Bot completo con memoria, PDF, log e admin avviato!")
-    app.run_polling()
+    print("🤖 Bot completo con memoria, PDF, log, immagini e admin avviato!")
+    app.run_polling(drop_pending_updates=True)
