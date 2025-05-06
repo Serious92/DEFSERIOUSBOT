@@ -1,6 +1,8 @@
+from keep_alive import keep_alive
 import os
 import logging
 import base64
+from keep_alive import keep_alive 
 from telegram import Update, InputFile
 from telegram.ext import (
     ApplicationBuilder,
@@ -140,6 +142,62 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Errore nella lettura del PDF.")
     finally:
         os.remove(file_path)
+
+# === VOICE ===
+async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    voice = update.message.voice
+    file = await context.bot.get_file(voice.file_id)
+    file_path = "audio.ogg"
+    await file.download_to_drive(file_path)
+    try:
+        with open(file_path, "rb") as audio_file:
+            transcript = client.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio_file
+            )
+        await update.message.reply_text(f"🗣 Hai detto: {transcript.text}")
+        chat_history = get_memory(update.effective_user.id)
+        chat_history.append({"role": "user", "content": transcript.text})
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=chat_history
+        )
+        reply = response.choices[0].message.content
+        await update.message.reply_text(reply)
+        add_to_memory(update.effective_user.id, "user", transcript.text)
+        add_to_memory(update.effective_user.id, "assistant", reply)
+        log_interaction(update.effective_user.id, transcript.text, reply)
+    except Exception as e:
+        logging.error(f"Errore audio: {e}")
+        await update.message.reply_text("Errore nella trascrizione o risposta.")
+    finally:
+        os.remove(file_path)
+
+# === PHOTO (GPT-4o Vision) ===
+async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    photo = update.message.photo[-1]
+    file = await context.bot.get_file(photo.file_id)
+    file_path = "photo.jpg"
+    await file.download_to_drive(file_path)
+    try:
+        with open(file_path, "rb") as image_file:
+            encoded = base64.b64encode(image_file.read()).decode("utf-8")
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "user", "content": [
+                    {"type": "text", "text": "Cosa c'è in questa immagine?"},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{encoded}"}}
+                ]}
+            ]
+        )
+        await update.message.reply_text(response.choices[0].message.content)
+    except Exception as e:
+        logging.error(f"Errore Vision: {e}")
+        await update.message.reply_text("Errore nell'analisi dell'immagine.")
+    finally:
+        os.remove(file_path)
+
 
 # === START ===
 if __name__ == '__main__':
