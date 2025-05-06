@@ -1,4 +1,3 @@
-
 from keep_alive import keep_alive
 
 import os
@@ -26,6 +25,15 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
 
 client = OpenAI(api_key=OPENAI_API_KEY)
+
+# WHOAMI FIXED
+async def handle_whoami(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    await update.message.reply_text(
+        f"🧾 Il tuo ID è `{user.id}`\nUsername: @{user.username}",
+        parse_mode="Markdown"
+    )
+
 
 # === TEXT ===
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
