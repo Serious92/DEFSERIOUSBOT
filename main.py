@@ -73,7 +73,7 @@ async def handle_shutdown(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # === WHOAMI ===
 async def handle_whoami(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    await update.message.reply_text(f"🧾 Il tuo ID è `{user.id}`
+    await update.message.reply_text(f"🧾 Il tuo ID è `{user.id}`\nUsername: @{user.username}", parse_mode="Markdown")
 Username: @{user.username}", parse_mode="Markdown")
 
 # === /WEB ===
